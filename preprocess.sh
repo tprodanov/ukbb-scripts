@@ -2,20 +2,23 @@
 
 set -euo pipefail
 
-rm -rf /output && mkdir -p /output && cd /output
-ln -s /mnt/project/Ref Ref
-ln -s "/mnt/project/Bulk/GATK and GraphTyper WGS/Whole genome GATK CRAM files and indices [500k release]" WGS
+rm -rf wdir && mkdir -p wdir
+
+# Copy reference genome and k-mer counts.
+mkdir Ref
+cp /mnt/project/Ref/GRCh38/{full/genome.fa,full/genome.fa.fai,counts.jf} Ref
+
+# File with sample ids.
+samples_file="$1"
+outer_threads="$2"
+inner_threads=1
+
 cp /mnt/project/Timofey/Locityper/scripts/preprocess_one.sh .
 chmod +x preprocess_one.sh
 
-samples="$1"
-outer_threads="$2"
-inner_threads=1
-genome="Ref/GRCh38/full/genome.fa"
-counts="Ref/GRCh38/counts.jf"
+cp "$samples_file" samples.txt
+cat samples.txt | xargs -i -t -P "$outer_threads" \
+    ./preprocess_one.sh {} "$inner_threads"
 
-cat "$samples" | \
-    xargs -i -t -P "$outer_threads" ./preprocess_one.sh {} "$genome" "$counts" "$inner_threads" \
-    |& tee xargs.log
-
-rm Ref WGS preprocess_one.sh
+rm -r Ref wdir
+rm preprocess_one.sh samples.txt

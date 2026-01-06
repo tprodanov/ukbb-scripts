@@ -3,19 +3,24 @@
 set -euo pipefail
 
 sample="$1"
-genome="$2"
-counts="$3"
-threads="$4"
+threads="$2"
 
+# First two letters.
 prefix="${sample:0:2}"
-cram="WGS/$prefix/${sample}_23372_0_0.cram"
+wgs="/mnt/project/Bulk/GATK and GraphTyper WGS/Whole genome GATK CRAM files and indices [500k release]"
+cram="$wgs/$prefix/${sample}_23372_0_0.cram"
+# Copy index and stream CRAM file.
+ln -s "$cram" "wdir/${sample}.cram"
+cp "${cram}.crai" "wdir/${sample}.cram.crai"
 
 time locityper preproc \
-    -a "$cram" \
-    -o "$sample" \
-    -r "$genome" \
-    -j "$counts" \
-    -@ "$threads" &> "${sample}.log"
+    -a "wdir/${sample}.cram" \
+    -o "wdir/$sample" \
+    -r "Ref/genome.fa" \
+    -j "Ref/counts.jf" \
+    -@ "$threads" &> "wdir/${sample}.log"
 
-([[ -f "${sample}/success" ]] && mv "${sample}/distr.gz" "${sample}.gz") || touch "${sample}.err"
-rm -r "$sample"
+([[ -f "wdir/${sample}/success" ]] && mv "wdir/${sample}/distr.gz" "${sample}.gz") \
+    || (mv "wdir/${sample}.log" "${sample}.log")
+
+rm -r "wdir/$sample"*
