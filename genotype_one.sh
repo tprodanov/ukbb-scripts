@@ -13,22 +13,24 @@ cram="$wgs/$prefix/${sample}_23372_0_0.cram"
 ln -s "$cram" "wdir/${sample}.cram"
 cp "${cram}.crai" "wdir/${sample}.cram.crai"
 
+cp "/mnt/project/Timofey/Locityper/bg/${sample}.gz" "wdir/${sample}.bg.gz"
+
 runtime=$( TIMEFMT="%U,%S,%E,%M";
-    { time locityper preproc \
+    { time locityper genotype \
         -a "wdir/${sample}.cram" \
-        -o "wdir/$sample" \
+        -d db \
+        -p "wdir/${sample}.bg.gz" \
         -r "ref/genome.fa" \
-        -j "ref/counts.jf" \
-        -@ "$threads" &> "wdir/${sample}.log";
+        -o "wdir/$sample" \
+        -O 0 \
+        -@ "$threads" &> "${sample}.log"
     } 2>&1 )
 
-if [[ -f "wdir/${sample}/success" ]]; then
-    res=OK
-    mv "wdir/${sample}/distr.gz" "${sample}.gz"
-else
-    res=ERR
-    mv "wdir/${sample}.log" "${sample}.log"
-fi
-rm -r "wdir/$sample"*
+cat "${sample}.log"
 
-echo "${sample},${res},${runtime}"
+cd wdir
+n="$(cp --parents -v "$sample/loci/*/res.json.gz" ../out | grep -cF .json.gz)"
+
+rm -r "$sample"*
+
+echo "${sample},${n},${runtime}"
