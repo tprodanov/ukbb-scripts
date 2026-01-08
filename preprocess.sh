@@ -22,7 +22,7 @@ cp "/mnt/project/$samples_file" samples.txt
 log_prefix="$(basename "$samples_file" .txt)"
 cat samples.txt | xargs -i -P "$outer_threads" \
     ./preprocess_one.sh {} "$inner_threads" | \
-    sed 's/s,/,/g' | tee "${log_prefix}.time"
+    sed --unbuffered 's/s,/,/g' | tee "${log_prefix}.time"
 
 rm -r wdir ref
 rm preprocess_one.sh samples.txt

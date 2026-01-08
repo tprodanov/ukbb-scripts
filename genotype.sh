@@ -30,13 +30,14 @@ cp /mnt/project/Timofey/Locityper/scripts/genotype_one.sh .
 chmod +x genotype_one.sh
 
 cp "/mnt/project/$samples_file" samples.txt
-log_prefix="$(basename "$samples_file" .txt)"
+out_prefix="$(basename "$samples_file" .txt)"
+# Allow five hours per sample
 cat samples.txt | xargs -i -P "$outer_threads" \
-    zsh -x ./genotype_one.sh {} "$inner_threads" | \
-    sed 's/s,/,/g' | tee "${log_prefix}.time"
+    timeout 3600 ./genotype_one.sh {} "$inner_threads" | \
+    sed --unbuffered 's/s,/,/g' | tee "${out_prefix}.time"
 
 # Create a TAR file combining all output files
-tar cf out.tar -C out .
+tar cf "${out_prefix}.tar" -C out .
 
 rm -r wdir ref db out
 rm genotype_one.sh samples.txt
