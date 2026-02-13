@@ -5,6 +5,13 @@ set -euo pipefail
 sample="$1"
 threads="$2"
 
+if [[ $# -ge 3 ]]; then
+    [[ $3 = :: ]] || (echo "Next argument must be ::" >&2; exit 1)
+    args=("${@:4}")
+else
+    args=()
+fi
+
 cd wdir
 
 # First two letters.
@@ -17,7 +24,7 @@ cp "${cram}.crai" "${sample}.cram.crai"
 
 cp "/mnt/project/Timofey/Locityper/bg/${sample}.gz" "${sample}.bg.gz"
 
-runtime=NULL
+# TIMEFMT: User time, system time, elapsed time, peak memory
 runtime=$( TIMEFMT="%U,%S,%E,%M";
     { time locityper genotype \
         -a "${sample}.cram" \
@@ -26,7 +33,9 @@ runtime=$( TIMEFMT="%U,%S,%E,%M";
         -r "../ref/genome.fa" \
         -o "$sample" \
         -O 0 \
-        -@ "$threads" &> /dev/null;
+        -@ "$threads" \
+        "${args[@]}" \
+        &> /dev/null;
     } 2>&1 )
 
 n="$(cp --parents -v "$sample/loci/"*/res.json.gz ../out | grep -cF .json.gz)"

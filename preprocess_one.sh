@@ -13,6 +13,7 @@ cram="$wgs/$prefix/${sample}_23372_0_0.cram"
 ln -s "$cram" "wdir/${sample}.cram"
 cp "${cram}.crai" "wdir/${sample}.cram.crai"
 
+# TIMEFMT: User time, system time, elapsed time, peak memory
 runtime=$( TIMEFMT="%U,%S,%E,%M";
     { time locityper preproc \
         -a "wdir/${sample}.cram" \
