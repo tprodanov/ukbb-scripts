@@ -1,9 +1,11 @@
 #!/usr/bin/zsh
 
+# preprocess.sh SAMPLES OUTER_THREADS[,INNER_THREADS]
+
 set -euo pipefail
 
 # File with sample ids.
-samples="samples/$1"
+samples="samples/${1}.txt"
 if [[ "$2" =~ , ]]; then
     IFS=, read outer_threads inner_threads <<< "$2"
 else

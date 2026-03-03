@@ -4,8 +4,8 @@ set -euo pipefail
 
 # genotype.sh SAMPLES DB OUTER_THREADS[,INNER_THREADS] :: EXTRA_ARGS
 
-samples="samples/$1"
-db_dir="$2"
+samples="samples/${1}.txt"
+db_tar="$2"
 
 # If contains "," then has two numbers, otherwise one
 if [[ "$3" =~ , ]]; then
@@ -30,15 +30,11 @@ mkdir wdir ref out
 # Copy reference genome and k-mer counts.
 cp /mnt/project/Ref/GRCh38/{full/genome.fa,full/genome.fa.fai,counts.jf} ref
 
-# Avoid copying multiple files by providing one tar file.
-if [[ "$db_dir" =~ .tar ]]; then
-    cp /mnt/project/"$db_dir" db.tar
-    tar xf db.tar
-    mv $(tar tf db.tar | head -n 1) db
-    rm db.tar
-else
-    cp -r /mnt/project/"$db_dir" db
-fi
+# Extract Locityper database
+mkdir tmp
+db_dir="$(tar -C tmp -xvf /mnt/project/"$db_tar" | head -n1)"
+mv "tmp/$db_dir" db
+rm -rf tmp
 
 cp /mnt/project/Timofey/Locityper/scripts/genotype_one.sh .
 chmod +x genotype_one.sh
