@@ -22,14 +22,12 @@ cram="$wgs/$prefix/${sample}_23372_0_0.cram"
 ln -s "$cram" "${sample}.cram"
 cp "${cram}.crai" "${sample}.cram.crai"
 
-cp "/mnt/project/Timofey/Locityper/bg/${sample}.gz" "${sample}.bg.gz"
-
 # TIMEFMT: User time, system time, elapsed time, peak memory
 runtime=$( TIMEFMT="%U,%S,%E,%M";
     { time locityper genotype \
         -a "${sample}.cram" \
         -d ../db \
-        -p "${sample}.bg.gz" \
+        -p "../bg/${prefix}/${sample}.gz" \
         -r "../ref/genome.fa" \
         -o "$sample" \
         -O 0 \
