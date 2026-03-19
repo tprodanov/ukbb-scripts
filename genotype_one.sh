@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+if [[ "${DEBUG:-false}" = true ]]; then set -x; fi
+
 sample="$1"
 threads="$2"
 
@@ -22,6 +24,12 @@ cram="$wgs/$prefix/${sample}_23372_0_0.cram"
 ln -s "$cram" "${sample}.cram"
 cp "${cram}.crai" "${sample}.cram.crai"
 
+if [[ "${SAVE_LOG:-false}" = true ]]; then
+    log=../out/${sample}.log
+else
+    log=/dev/null
+fi
+
 # TIMEFMT: User time, system time, elapsed time, peak memory
 runtime=$( TIMEFMT="%U,%S,%E,%M";
     { time locityper genotype \
@@ -33,7 +41,7 @@ runtime=$( TIMEFMT="%U,%S,%E,%M";
         -O 0 \
         -@ "$threads" \
         "${args[@]}" \
-        &> /dev/null;
+        &> "$log";
     } 2>&1 )
 
 n="$(cp --parents -v "$sample/loci/"*/res.json.gz ../out | grep -cF .json.gz)"

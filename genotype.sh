@@ -3,6 +3,8 @@
 set -euo pipefail
 
 # genotype.sh SAMPLES DB OUTER_THREADS[,INNER_THREADS] :: EXTRA_ARGS
+# Also, reads exported variables `DEBUG` (run inner scripts with -x) and `SAVE_LOG`
+# (both variables should hold true/false).
 
 samples="samples/${1}.txt"
 db_tar="$2"
@@ -31,10 +33,13 @@ mkdir wdir ref out
 cp /mnt/project/Ref/GRCh38/{full/genome.fa,full/genome.fa.fai,counts.jf} ref
 
 # Extract Locityper database
-mkdir tmp
-db_dir="$(tar -C tmp -xvf /mnt/project/"$db_tar" | head -n1)"
-mv "tmp/$db_dir" db
-rm -rf tmp
+mkdir db_tmp
+cp "/mnt/project/$db_tar" db_tmp
+tar -C db_tmp -xf db_tmp/$(basename $db_tar)
+rm db_tmp/$(basename $db_tar)
+db_dir="$(ls db_tmp | head -n1)"
+mv "db_tmp/$db_dir" db
+rm -rf db_tmp
 
 cp /mnt/project/Timofey/Locityper/scripts/genotype_one.sh .
 chmod +x genotype_one.sh
