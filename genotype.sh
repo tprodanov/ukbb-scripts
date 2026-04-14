@@ -73,7 +73,6 @@ function parse_params {
     long1="samples-tar:,samples:,database:,preproc:,reference:,wgs:,wgs-infix:,"
     long2="threads:,gt-threads:,debug,save-log,save-json,timeout:,help"
     ARGS="$(getopt -o S:s:d:p:r:w:@:h --long "${long1}${long2}" --name "$SCRIPT_NAME" -- "$@")"
-    echo "$ARGS"
     eval set -- "$ARGS"
     while :; do
         case "$1" in
@@ -171,7 +170,7 @@ function genotype_one {
     # debug_arg without quotes because it can be empty and skipped.
     set $debug_arg -euo pipefail
 
-    local sample gt_args prefix cram log runtime
+    local sample gt_args prefix cram log cmd runtime n
     # First proper argument: sample, all rest: additional locityper arguments.
     sample="$1"
     gt_args="${@:2}"
@@ -184,14 +183,14 @@ function genotype_one {
     ln -s "$cram" "${sample}.cram"
     cp "${cram}.crai" "${sample}.cram.crai"
 
-    [[ "$save_log" = y ]] && log=../out/${sample}.log || log=/dev/null
+    [[ "$save_log" = y ]] && log="../out/${sample}.log" || log=/dev/null
 
     cmd=( time locityper genotype \
         -a "${sample}.cram" -d db -p "bg/${prefix}/${sample}.gz" \
         -r genome.fa -o "$sample" -O 0 -@ "$gt_threads" "${gt_args[@]}" \
-        "&>" "$log")
+        "&>" "$log" )
     # TIMEFMT: User time, system time, elapsed time, peak memory
-    runtime="$( TIMEFMT="%U,%S,%E,%M" timeout "$timeout" zsh $debug_arg -c "${cmd[*]}" 2>&1 )"
+    runtime="$( TIMEFMT="%U,%S,%E,%M" timeout "$timeout" zsh -c "${cmd[*]}" 2>&1 )"
 
     zgrep -m1 genotype "$sample/loci"/*/res.json.gz | \
         awk -F'[/"]' -v sample="$sample" 'BEGIN{OFS="\t"} { print sample,$3,$7 }' > "../out/${sample}.csv"
@@ -208,7 +207,6 @@ function genotype_one {
 
 function export_variables {
     export gt_threads
-    [[ "$debug" = n ]] && debug_arg="" || debug_arg="-x"
     export debug_arg
     export save_log
     export save_json
@@ -220,7 +218,7 @@ function export_variables {
 function run_genotyping {
     (
         cat wdir/samples.txt | \
-        xargs -i -P "$threads" bash -c 'genotype_one {} '"${gt_args[*]}" | \
+        xargs -i -P "$threads" bash -c "genotype_one {} ${gt_args[*]}" | \
         tee "${out_prefix}.time"
     ) || true
 }
