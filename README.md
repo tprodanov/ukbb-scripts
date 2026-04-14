@@ -19,6 +19,15 @@ Both scripts assume file system is mounted into `/mnt/project`, all paths point 
 Additional Locityper arguments can be passed after `--`, for example we used `--recr-alt-len 0` and possibly
 `--recr-bed PATH`.
 
+## Output files
+
+On UKB, all files remaining in the directory will be copied to the `--destination` folder.
+Preprocessing script retains files `XX/SAMPLE.gz`, while genotyping script creates `SUBSET.csv.gz` with three columns:
+sample, locus, genotype. Additional files can be kept using flags `--save-json` and `--save-log`.
+Finally, both scripts create `SUBSET.time` csv files with columns: sample, status, user-time, sys-time,
+elapsed-time, peak-memory (Mb).
+`SUBSET` is a basename of the samples subset (`-s`) without `.txt` suffix.
+
 ## Job submission
 
 On UKB, to submit a job with have to use [Swiss-Army-Knife](https://community.ukbiobank.ac.uk/hc/en-gb/articles/29899902876829-Running-Docker-images-with-the-Swiss-Army-Knife-GUI-on-the-UKB-RAP) applet,
