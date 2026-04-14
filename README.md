@@ -1,66 +1,43 @@
 # Scripts for running Locityper on UK Biobank
 
-Scripts `preprocess_one.sh` and `genotype_one.sh` process one sample on UKB and have two required arguments:
-sample ID and the number of threads (usually 1).
-In addition, `genotype_one.sh` allows for additional arguments after `::` that are passed directly into `locityper genotype`.
+Genotyping script has been updated to encorporate proper argument parsing,
+while preprocessing is still being updated.
+Both scripts assume file system is mounted into `/mnt/project`, all paths point there.
 
-Both scripts copy CRAI index and soft-link the CRAM file, located at
-```sh
-wgs="/mnt/project/Bulk/GATK and GraphTyper WGS/Whole genome GATK CRAM files and indices [500k release]"
-# First two letters.
-prefix="${sample:0:2}"
-cram="$wgs/$prefix/${sample}_23372_0_0.cram"
-```
+## Arguments and data structure
 
-Optimally, both scripts should be executed in `zsh` due to its better built-in `time` command, capable of recording memory usage.
+- `-r` : reference FASTA file with required FAI index,
+- `-j` : jellyfish *k*-mer counts (necessary only for preprocessing),
+- `-S` : TAR file containing multiple text files with sample subsets.
+- `-s` : basename (possibly without suffix) of one of these text files.
+- `-d` : TAR with Locityper database.
+- `-p` : directory with preprocessed data. Data is structured in the following way:
+    tar files `DIR/XX.tar.gz` contain files `XX/SAMPLE.gz`, where `XX` is two-letter prefix of the sample name,
+    and `SAMPLE.gz` is preprocessed Locityper data (`distr.gz`).
+- `-w` and `--wgs-infix` : path to WGS files and file infix. Files are located in `WGS_DIR/XX/SAMPLE${INFIX}.cram`.
 
-## Preprocessing
-
-Main preprocessing script `preprocess.sh` has two arguments: filename with the list of sample IDs
-and number of threads `OUTER_THREADS[,INNER_THREADS]`.
-Samples are split into multiple batches and are stored in a `tar.gz` file, its location is hardcoded to be
-`/mnt/project/Timofey/samples.tar.gz`.
-
-We then extract file `samples/${SAMPLES}.txt` from this TAR file, for example `samples/batch1000.txt` for `SAMPLES=batch1000`.
-
-Additionally, the scripts expects reference genome at
-`/mnt/project/Ref/GRCh38/full/genome.fa[.fai]` and corresponding k-mer counts at `/mnt/project/Ref/GRCh38/counts.jf`;
-as well as the inner preprocessing script at `/mnt/project/Timofey/Locityper/scripts/preprocess_one.sh`.
-
-## Genotyping
-
-In addition to the sample files, reference genome and inner scripts, genotyping pipeline relies on preprocessed data.
-After running preprocessing scripts, we organized it into `/mnt/project/Timofey/Locityper/bg/{}.tar.gz`
-files, where `{}` encodes first two digits of the sample ID.
-
-Such procedure can be done with
-```sh
-cut -c-2 ../samples/samples.txt | sort -u | parallel -P8 \
-    mkdir {} '&&' cp ../bg0/{}"*" {}
-cut -c-2 ../samples/samples.txt | sort -u | parallel -P8 --progress \
-    tar cf - {} '|' gzip -9 '>' {}.tar.gz
-```
-
-The genotyping script is executed using `genotype.sh SAMPLES DB OUTER_THREADS[,INNER_THREADS] :: EXTRA_ARGS`
-where `DB` is a TAR file with the Locityper target database, located in `/mnt/project`.
+Additional Locityper arguments can be passed after `--`, for example we used `--recr-alt-len 0` and possibly
+`--recr-bed PATH`.
 
 ## Job submission
 
-On UKB, to submit a job with have to use [Swiss-Army-Knife](https://community.ukbiobank.ac.uk/hc/en-gb/articles/29899902876829-Running-Docker-images-with-the-Swiss-Army-Knife-GUI-on-the-UKB-RAP) applet, with submission command looking something like:
+On UKB, to submit a job with have to use [Swiss-Army-Knife](https://community.ukbiobank.ac.uk/hc/en-gb/articles/29899902876829-Running-Docker-images-with-the-Swiss-Army-Knife-GUI-on-the-UKB-RAP) applet,
+with submission command looking something like:
 ```sh
-DB=mucins-a
-SUBSET=by_256/2e8:AAAAA1
+DB=database_name
+SUBSET=subset_name
 INSTANCE=mem2_ssd1_v2_x32
 PRIORITY=low
 dx run swiss-army-knife \
-    --instance-type=${INSTANCE} \
-    --priority=${PRIORITY} \
-    --destination=/Timofey/Locityper/gt/${DB} \
+    --instance-type="$INSTANCE" \
+    --priority="$PRIORITY" \
+    --destination=/Timofey/Locityper/gt/"$DB" \
     -iimage_file=/Timofey/Locityper/locityper."*".tar.xz \
     -icmd='
-        md5sum /mnt/project/Timofey/Locityper/scripts/genotype*.sh;
-        zsh -x /mnt/project/Timofey/Locityper/scripts/genotype.sh \
-            '$SUBSET' Timofey/Locityper/dbs/'$DB'.tar.gz '${INSTANCE##*x}' \
-            :: --recr-bed ~~GRCh38 --recr-alt-len 0
+        bash -x /mnt/project/Timofey/Locityper/scripts/genotype.sh \
+            -s '$SUBSET' \
+            -d Timofey/Locityper/dbs/'$DB'.tar.gz \
+            -@ '${INSTANCE##*x}' \
+            -- --recr-alt-len 0
     '
 ```
